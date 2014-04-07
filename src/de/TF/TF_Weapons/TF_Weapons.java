@@ -8,7 +8,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 @SuppressWarnings({"rawtypes", "unchecked"})
-public class MTFlags extends JavaPlugin 
+public class TF_Weapons extends JavaPlugin 
 {
 	public static final StringFlag CMD_FLAG = new StringFlag("cmd");
 	public static final CustomSetFlag PLAYER_CMD_ENTRY_FLAG = new CustomSetFlag("player-entry-cmd", CMD_FLAG);
@@ -18,7 +18,7 @@ public class MTFlags extends JavaPlugin
 	public static final CustomSetFlag PERM_CMD_ENTRY_FLAG = new CustomSetFlag("perm-entry-cmd", CMD_FLAG);
 	public static final CustomSetFlag PERM_CMD_EXIT_FLAG = new CustomSetFlag("perm-exit-cmd", CMD_FLAG);
 	public static final CustomSetFlag BLOCK_MOB_DMG = new CustomSetFlag("block-mob-dmg", CMD_FLAG);
-	private MTListener listener;
+	private TFListener listener;
 	private WGCustomFlagsPlugin custPlugin;
 	
 	public void onEnable() 
@@ -39,7 +39,7 @@ public class MTFlags extends JavaPlugin
 		this.custPlugin.addCustomFlag(PERM_CMD_EXIT_FLAG);
 		this.custPlugin.addCustomFlag(BLOCK_MOB_DMG);
 		
-		this.listener = new MTListener(this);
+		this.listener = new TFListener(this);
 		
 		getServer().getPluginManager().registerEvents(this.listener, this);
 	}
