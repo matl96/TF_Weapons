@@ -1,6 +1,6 @@
 name: TF_Weapons
 main: de.TF.TF_Weapons.TF_Weapons
-version: 0.1b for PM 1.7.5
+version: 0.1a for PM 1.7.5
 depend: [WorldGuard, WGCustomFlags, WorldEdit, MatlsTool, WGRegionEvents]
 description: >
              Matls Pluginmix for Power-Minecraft

@@ -45,6 +45,11 @@ public class TFListener implements Listener
 		this.plugin = plugin;
 	}
 	
+	/**
+	 * returns the WorldGuard Plugin
+	 * 
+	 * @return WG Plugin
+	 */
 	private WorldGuardPlugin getWorldGuard() 
 	{
 	    Plugin wg = Bukkit.getServer().getPluginManager().getPlugin("WorldGuard");
@@ -116,7 +121,7 @@ public class TFListener implements Listener
 	 * 
 	 * @param e
 	 * @author matl96
-	 * @since MTFlags 1.1
+	 * @since 0.1a
 	 * @deprecated is automatically called by {@code EventHandler}, so you don't need to use it.
 	 */
 	@EventHandler
@@ -305,6 +310,7 @@ public class TFListener implements Listener
 	 * @param player
 	 * @param mob
 	 * @param strength
+	 * @param Y (the height)
 	 */
     public void knockback(Player player, Entity mob, double strength, double Y)
     {
@@ -314,6 +320,15 @@ public class TFListener implements Listener
 	    mob.setVelocity(v);
     }
     
+    /**
+     * Logic for CMD-Flags, dont use!
+     * 
+     * @deprecated
+     * 
+     * @param cs
+     * @param cmds
+     * @param e
+     */
 	private void parseCmd(CommandSender cs, Set<String> cmds, RegionEvent e) 
 	{
 		for (String cmd : cmds) {
@@ -327,6 +342,15 @@ public class TFListener implements Listener
 		}
 	}
 	
+	/**
+     * Logic for CMD-Flags, dont use!
+     * 
+     * @deprecated
+     * 
+     * @param cs
+     * @param cmd
+     * @param e
+     */
 	private void permCMD(CommandSender cs, String cmd, RegionEvent e) 
 	{
 		cmd = cmd.replaceAll("\\{player\\}", e.getPlayer().getName());
@@ -338,6 +362,13 @@ public class TFListener implements Listener
 		this.plugin.getServer().dispatchCommand(cs, cmd);
 	}
 	
+	/**
+	 * Checks if a Block can be placed a specific {@code block}
+	 * 
+	 * @param block
+	 * @param isSoulEater
+	 * @return boolean
+	 */
 	public boolean blockIsPlacable(Block block, boolean isSoulEater) {
 		Material type = block.getType();
 		if(!isSoulEater) {
@@ -354,6 +385,12 @@ public class TFListener implements Listener
 		}
 	}
 	
+	/**
+	 * Gets the Players facing direction... Will be needed for Soul Eater...
+	 * 
+	 * @param player
+	 * @return direction
+	 */
 	public static String getFacingDirection(Player player) {
 		double rot = (player.getLocation().getYaw() - 90) % 360;
 		if (rot < 0) {
