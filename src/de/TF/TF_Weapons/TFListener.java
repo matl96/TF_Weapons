@@ -1,9 +1,6 @@
 package de.TF.TF_Weapons;
 
-import java.math.BigInteger;
-import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -14,7 +11,6 @@ import org.bukkit.Effect;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.command.CommandSender;
@@ -28,7 +24,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerToggleSprintEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
@@ -36,17 +31,16 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.projectiles.ProjectileSource;
 import org.bukkit.util.Vector;
 
-import com.google.common.primitives.Bytes;
 import com.mewin.WGRegionEvents.events.RegionEnteredEvent;
 import com.mewin.WGRegionEvents.events.RegionEvent;
 import com.mewin.WGRegionEvents.events.RegionLeftEvent;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 
-public class MTListener implements Listener 
+public class TFListener implements Listener 
 {
-	private MTFlags plugin;
+	private TF_Weapons plugin;
 	
-	public MTListener(MTFlags plugin) 
+	public TFListener(TF_Weapons plugin) 
 	{
 		this.plugin = plugin;
 	}
@@ -67,14 +61,14 @@ public class MTListener implements Listener
 	@EventHandler
 	public void onRegionLeft(RegionLeftEvent e) 
 	{
-		if (e.getRegion().getFlag(MTFlags.PLAYER_CMD_EXIT_FLAG) != null) 
-			parseCmd(e.getPlayer(), (Set)e.getRegion().getFlag(MTFlags.PLAYER_CMD_EXIT_FLAG), e);
+		if (e.getRegion().getFlag(TF_Weapons.PLAYER_CMD_EXIT_FLAG) != null) 
+			parseCmd(e.getPlayer(), (Set)e.getRegion().getFlag(TF_Weapons.PLAYER_CMD_EXIT_FLAG), e);
 		
-		if (e.getRegion().getFlag(MTFlags.SERVER_CMD_EXIT_FLAG) != null) 
-			parseCmd(this.plugin.getServer().getConsoleSender(), (Set)e.getRegion().getFlag(MTFlags.SERVER_CMD_EXIT_FLAG), e);
+		if (e.getRegion().getFlag(TF_Weapons.SERVER_CMD_EXIT_FLAG) != null) 
+			parseCmd(this.plugin.getServer().getConsoleSender(), (Set)e.getRegion().getFlag(TF_Weapons.SERVER_CMD_EXIT_FLAG), e);
 		
-		if(e.getRegion().getFlag(MTFlags.PERM_CMD_EXIT_FLAG) != null) {
-			Set<String> flagString = e.getRegion().getFlag(MTFlags.PERM_CMD_EXIT_FLAG);
+		if(e.getRegion().getFlag(TF_Weapons.PERM_CMD_EXIT_FLAG) != null) {
+			Set<String> flagString = e.getRegion().getFlag(TF_Weapons.PERM_CMD_EXIT_FLAG);
 			Player player = e.getPlayer();
 			for (String permToken : flagString) {
 				String perm = permToken.split(" ")[0];
@@ -93,14 +87,14 @@ public class MTListener implements Listener
 	@EventHandler
 	public void onRegionEntered(RegionEnteredEvent e) 
 	{
-		if (e.getRegion().getFlag(MTFlags.PLAYER_CMD_ENTRY_FLAG) != null)
-			parseCmd(e.getPlayer(), (Set)e.getRegion().getFlag(MTFlags.PLAYER_CMD_ENTRY_FLAG), e);
+		if (e.getRegion().getFlag(TF_Weapons.PLAYER_CMD_ENTRY_FLAG) != null)
+			parseCmd(e.getPlayer(), (Set)e.getRegion().getFlag(TF_Weapons.PLAYER_CMD_ENTRY_FLAG), e);
 		
-		if (e.getRegion().getFlag(MTFlags.SERVER_CMD_ENTRY_FLAG) != null) 
-			parseCmd(this.plugin.getServer().getConsoleSender(), (Set)e.getRegion().getFlag(MTFlags.SERVER_CMD_ENTRY_FLAG), e);
+		if (e.getRegion().getFlag(TF_Weapons.SERVER_CMD_ENTRY_FLAG) != null) 
+			parseCmd(this.plugin.getServer().getConsoleSender(), (Set)e.getRegion().getFlag(TF_Weapons.SERVER_CMD_ENTRY_FLAG), e);
 		
-		if (e.getRegion().getFlag(MTFlags.PERM_CMD_ENTRY_FLAG) != null) {
-			Set<String> flagString = e.getRegion().getFlag(MTFlags.PERM_CMD_ENTRY_FLAG);
+		if (e.getRegion().getFlag(TF_Weapons.PERM_CMD_ENTRY_FLAG) != null) {
+			Set<String> flagString = e.getRegion().getFlag(TF_Weapons.PERM_CMD_ENTRY_FLAG);
 			Player player = e.getPlayer();
 			for (String permToken : flagString) {
 				String perm = permToken.split(" ")[0];
@@ -212,7 +206,7 @@ public class MTListener implements Listener
 			if(Material.getMaterial("IRON_HOE").equals(item.getType())) {
 				String itemName = item.getItemMeta().getDisplayName();
 				if(itemName != null)
-					if("§4Soul Eater".equals(itemName.trim())) {
+					if("§4Soul".equals(itemName.trim())) {
 						LivingEntity newMob = (LivingEntity) mob;
 						//BaseDmg
 						double dmg = (((Math.random()*newMob.getHealth())/(player.getHealth()/10))+(newMob.getMaxHealth()/10))*(newMob.getFallDistance()+1);
