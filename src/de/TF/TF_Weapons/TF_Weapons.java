@@ -25,7 +25,7 @@ public class TF_Weapons extends JavaPlugin
 	{
 		Plugin plug = getServer().getPluginManager().getPlugin("WGCustomFlags");
 		if ((plug == null) || (!(plug instanceof WGCustomFlagsPlugin)) || (!plug.isEnabled())) {
-			getLogger().warning("WorldGuardCustomFlags ist nicht installiert!!!");
+			getLogger().warning("WorldGuardCustomFlags ist nicht installiert!");
 			getServer().getPluginManager().disablePlugin(this);
 			return;
 		}
