@@ -11,6 +11,7 @@ import org.bukkit.Effect;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.command.CommandSender;
@@ -36,8 +37,13 @@ import com.mewin.WGRegionEvents.events.RegionEvent;
 import com.mewin.WGRegionEvents.events.RegionLeftEvent;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 
+
 public class TFListener implements Listener 
 {
+	private String soulEaterName = "§4Soul";
+	private String frostMourneName = "§bFrostmourne";
+	private String golfName = "§6Golfschläger";
+	
 	private TF_Weapons plugin;
 	
 	public TFListener(TF_Weapons plugin) 
@@ -171,7 +177,7 @@ public class TFListener implements Listener
 			if(Material.getMaterial("DIAMOND_SWORD").equals(item.getType())) {
 				String itemName = item.getItemMeta().getDisplayName();
 				if(itemName != null)
-					if("§bFrostmourne".equals(itemName.trim())) {
+					if(frostMourneName.equals(itemName.trim())) {
 						LivingEntity newMob = (LivingEntity) mob;
 						if(player.isSneaking()) {
 							player.launchProjectile(Arrow.class);
@@ -211,7 +217,7 @@ public class TFListener implements Listener
 			if(Material.getMaterial("IRON_HOE").equals(item.getType())) {
 				String itemName = item.getItemMeta().getDisplayName();
 				if(itemName != null)
-					if("§4Soul".equals(itemName.trim())) {
+					if(soulEaterName.equals(itemName.trim())) {
 						LivingEntity newMob = (LivingEntity) mob;
 						//BaseDmg
 						double dmg = (((Math.random()*newMob.getHealth())/(player.getHealth()/10))+(newMob.getMaxHealth()/10))*(newMob.getFallDistance()+1);
@@ -230,29 +236,13 @@ public class TFListener implements Listener
 							newMob.getWorld().playEffect(newMob.getLocation(), Effect.MOBSPAWNER_FLAMES, 0);
 							newMob.damage(dmg*((player.getFallDistance()/2)+1.5));
 							knockback(player, newMob, 0.75, 0);
-						} if(player.isSneaking()) {
+						} else if(player.isSneaking()) {
 							e.setCancelled(true);
 							knockback(player, newMob, 0.5, 1);
 						} else {
 							newMob.damage(dmg);
-							knockback(player, newMob, 0.5, 0);
+							knockback(player, newMob, 0.4, 0.35);
 						}
-					}
-			}
-		}
-	}
-	
-	public void golf(Entity mob, Player player, EntityDamageByEntityEvent e) 
-	{
-		if(mob instanceof LivingEntity) {
-			ItemStack item = player.getItemInHand();
-			if(Material.getMaterial("WOOD_SPADE").equals(item.getType())) {
-				String itemName = item.getItemMeta().getDisplayName();
-				if(itemName != null)
-					if("§6Golfschläger".equals(itemName.trim())) {
-						LivingEntity newMob = (LivingEntity) mob;
-						knockback(player, newMob, 3, 1.3);
-						e.setCancelled(true);
 					}
 			}
 		}
@@ -260,14 +250,15 @@ public class TFListener implements Listener
 	
 	@SuppressWarnings("deprecation")
 	@EventHandler
-	public void soulEaterHit(PlayerInteractEvent e) {
+	public void soulEaterHit(PlayerInteractEvent e) 
+	{
 		if((e.getAction() == Action.RIGHT_CLICK_AIR) || (e.getAction() == Action.RIGHT_CLICK_BLOCK)) {
 			Player player = e.getPlayer();
 			ItemStack item = player.getItemInHand();
 			if(Material.getMaterial("IRON_HOE").equals(item.getType())) {
 				String itemName = item.getItemMeta().getDisplayName();
 				if(itemName != null)
-					if("§4Soul Eater".equals(itemName.trim())) {
+					if(soulEaterName.equals(itemName.trim())) {
 						if(player.isSneaking()) {
 							List<Block> blockList = new ArrayList<Block> (player.getLineOfSight(null, 13));
 							try {
@@ -279,7 +270,7 @@ public class TFListener implements Listener
 								return;
 							}
 							List<Block> newList = new ArrayList<Block>(blockList);
-							player.getWorld().playEffect(player.getLocation(), Effect.GHAST_SHOOT, 0);
+							playSound(player.getLocation(), Sound.BLAZE_BREATH, 1f, 0.3f);
 							for (Block block : blockList) {
 								newList.add(player.getWorld().getBlockAt(block.getX(), block.getY()-1, block.getZ()));
 							}
@@ -290,6 +281,7 @@ public class TFListener implements Listener
 									for (Entity ent : near) {
 										if(ent.getLocation().distance(block.getLocation()) <= 1)  {
 											ent.setFireTicks(50);
+											playSound(ent.getLocation(), Sound.BLAZE_HIT, 1, 2);
 											knockback(player, ent, 3, player.getLocation().distance(ent.getLocation())/5);
 										}
 									}
@@ -303,6 +295,33 @@ public class TFListener implements Listener
 			}
 		}
 	}
+	
+	public void golf(Entity mob, Player player, EntityDamageByEntityEvent e) 
+	{
+		if(mob instanceof LivingEntity) {
+			ItemStack item = player.getItemInHand();
+			if(Material.getMaterial("WOOD_SPADE").equals(item.getType())) {
+				String itemName = item.getItemMeta().getDisplayName();
+				if(itemName != null)
+					if(golfName.equals(itemName.trim())) {
+						LivingEntity newMob = (LivingEntity) mob;
+						knockback(player, newMob, 3, 1.3);
+						e.setCancelled(true);
+					}
+			}
+		}
+	}
+    
+					/* 																					 *\
+				     *     TTTTTTTTTTTT			EEEEEEEEEEEE 		CCCCCCCCCCCC 		HH		  HH     *
+				     *     		TT				EE			 		CC			 		HH		  HH	 *
+				     *     		TT				EE			 		CC			 		HH		  HH	 *
+				     *     		TT				EEEEEEEEEEEE 		CC			 		HHHHHHHHHHHH	 *
+				     *     		TT				EE			 		CC			 		HH		  HH	 *
+				     *     		TT				EE			 		CC			 		HH		  HH	 *
+				     *     		TT				EE			 		CC			 		HH		  HH	 *
+				     *     		TT				EEEEEEEEEEEE 		CCCCCCCCCCCC 		HH		  HH	 *
+					\*  																				 */
 	
 	/**
 	 * Pushes the {@code Entity mob} with the given {@code strength} away.
@@ -341,7 +360,7 @@ public class TFListener implements Listener
 			this.plugin.getServer().dispatchCommand(cs, cmd);
 		}
 	}
-	
+
 	/**
      * Logic for CMD-Flags, dont use!
      * 
@@ -417,5 +436,26 @@ public class TFListener implements Listener
 		} else {
 			return null;
 		}
+	}
+	
+	public static void playSound(Location loc, Sound sound, float volume, float pitch) {
+		List<Entity> mobs = getNearbyEntities(loc, 30);
+		Player otherPlayer = null;
+		for (Entity entity : mobs) {
+			if(entity instanceof Player) {
+				otherPlayer = (Player) entity;
+				otherPlayer.playSound(loc, sound, volume, pitch);
+			}
+		}
+	}
+	
+	public static List<Entity> getNearbyEntities(Location loc, double radius) {
+		List<Entity> near = loc.getWorld().getEntities();
+		List<Entity> outPut = new ArrayList<Entity>();
+		for(Entity e : near) {
+		    if(e.getLocation().distance(loc) <= radius) 
+		        outPut.add(e);
+		}
+		return outPut;
 	}
 }
