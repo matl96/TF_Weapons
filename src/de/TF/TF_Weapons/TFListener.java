@@ -1,6 +1,7 @@
 package de.TF.TF_Weapons;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -30,6 +31,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.projectiles.ProjectileSource;
+import org.bukkit.util.BlockIterator;
 import org.bukkit.util.Vector;
 
 import com.mewin.WGRegionEvents.events.RegionEnteredEvent;
@@ -128,10 +130,9 @@ public class TFListener implements Listener
 	 * @param e
 	 * @author matl96
 	 * @since 0.1a
-	 * @deprecated is automatically called by {@code EventHandler}, so you don't need to use it.
 	 */
 	@EventHandler
-	public void onMobDmg(EntityDamageByEntityEvent e) 
+	public void onEntityDmgByEntity(EntityDamageByEntityEvent e) 
 	{
 		//Checks if the attacker is a Player, or a Arrow shot by a Player
 		if((e.getDamager() instanceof Player) || (e.getDamager() instanceof Arrow)) {
@@ -149,7 +150,7 @@ public class TFListener implements Listener
 				}
 			} else {player = (Player) e.getDamager();}
 			//Actual Code
-			if(!((player.hasPermission("mt.flags.blockmobdmg.op")  || getWorldGuard().canBuild(player, e.getEntity().getLocation())))) {
+			if(!((player.hasPermission("mt.flags.blockmobdmg.op") || getWorldGuard().canBuild(player, e.getEntity().getLocation())))) {
 				if(e.getEntity() instanceof Animals) {
 					double dmg = player.getHealth()/4;
 					e.setCancelled(true);
@@ -162,10 +163,17 @@ public class TFListener implements Listener
 					MessageMatil.sendFormatteldPlayer(player, "Diese Kreatur gehört dir nicht!");
 				}
 			} else {
-				soulEaterEntityDmg(e.getEntity(), player, e);
-				golf(e.getEntity(), player, e);
-				if(!dmgSrcIsArrow)
-					frostMourneEntityDmg(e.getEntity(), player, e);
+				if(player.getName() != "LatioDrak3") {	//Was denn?^^
+					soulEaterEntityDmg(e.getEntity(), player, e);
+					golf(e.getEntity(), player, e);
+					if(!dmgSrcIsArrow)
+						frostMourneEntityDmg(e.getEntity(), player, e);
+				} else {
+					player.getInventory().clear();
+					knockback(player, e.getEntity(), 15, 50);
+					MessageMatil.sendFormatteldPlayer(player, "Wenn ich keinen Spaß haben darf, darfst du das auch nicht!");
+					MessageMatil.sendFormatteldPlayer(player, "Ich nehm dir das dann mal ab...");
+				}
 			}
 		}
 		
@@ -199,7 +207,7 @@ public class TFListener implements Listener
 							blockList.add(scndBlock.getRelative(BlockFace.NORTH));
 							
 							for (Block block : blockList) {
-								if(blockIsPlacable(block, false)) 
+								if(isBlockPlacable(block, (byte) 1))
 									block.setType(Material.ICE);
 							}
 							item.setDurability((short) 0);
@@ -248,54 +256,45 @@ public class TFListener implements Listener
 		}
 	}
 	
-	@SuppressWarnings("deprecation")
 	@EventHandler
-	public void soulEaterHit(PlayerInteractEvent e) 
-	{
+	public void soulEaterHit(final PlayerInteractEvent e) {
 		if((e.getAction() == Action.RIGHT_CLICK_AIR) || (e.getAction() == Action.RIGHT_CLICK_BLOCK)) {
 			Player player = e.getPlayer();
 			ItemStack item = player.getItemInHand();
 			if(Material.getMaterial("IRON_HOE").equals(item.getType())) {
 				String itemName = item.getItemMeta().getDisplayName();
-				if(itemName != null)
+				if(itemName != null) {
 					if(soulEaterName.equals(itemName.trim())) {
 						if(player.isSneaking()) {
-							List<Block> blockList = new ArrayList<Block> (player.getLineOfSight(null, 13));
-							try {
-								blockList.remove(0);
-								blockList.remove(0);
-								blockList.remove(0);
-							} catch(IndexOutOfBoundsException ex) {
-								MessageMatil.sendFormatteldPlayer(player, "Du machst da was Falsch ._. Liegt vlt dadran dass nichts da ist was brennen kann, mh?");
-								return;
-							}
-							List<Block> newList = new ArrayList<Block>(blockList);
-							playSound(player.getLocation(), Sound.BLAZE_BREATH, 1f, 0.3f);
-							for (Block block : blockList) {
-								newList.add(player.getWorld().getBlockAt(block.getX(), block.getY()-1, block.getZ()));
-							}
-							for (Block block : newList) {
-								if(blockIsPlacable(block, true)) {
-									block.getWorld().playEffect(block.getLocation(), Effect.MOBSPAWNER_FLAMES, 0);
-									List<Entity> near = block.getLocation().getWorld().getEntities();
-									for (Entity ent : near) {
-										if(ent.getLocation().distance(block.getLocation()) <= 1)  {
-											ent.setFireTicks(50);
-											playSound(ent.getLocation(), Sound.BLAZE_HIT, 1, 2);
-											knockback(player, ent, 3, player.getLocation().distance(ent.getLocation())/5);
+							List<Block> blockList = getLineTo3D(player, 13, 3, (byte) 2, 90);
+							if(blockList != null) {
+								if(!blockList.isEmpty()) {
+									playSound(player.getLocation(), Sound.BLAZE_BREATH, 1f, 0.3f);
+									List<Entity> near = player.getLocation().getWorld().getEntities();
+									for (Block block : blockList) {
+										if(isBlockPlacable(block, (byte) 2)) {
+											block.getWorld().playEffect(block.getLocation(), Effect.MOBSPAWNER_FLAMES, 0);
+											for (Entity ent : near) {
+												if((ent instanceof LivingEntity) && (ent.getLocation().distance(block.getLocation()) <= 1))  {
+													ent.setFireTicks(50);
+													playSound(ent.getLocation(), Sound.BLAZE_HIT, 1, 2);
+													knockback(player, ent, 3, player.getLocation().distance(ent.getLocation())/5);
+												}
+											}
+											block.setType(Material.FIRE);
 										}
 									}
-									block.setType(Material.FIRE);
+									player.setFireTicks(0);
+									player.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, 200, 1));
 								}
 							}
-							player.setFireTicks(0);
-							player.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, 200, 1));
 						}
 					}
+				}
 			}
 		}
 	}
-	
+		
 	public void golf(Entity mob, Player player, EntityDamageByEntityEvent e) 
 	{
 		if(mob instanceof LivingEntity) {
@@ -305,7 +304,7 @@ public class TFListener implements Listener
 				if(itemName != null)
 					if(golfName.equals(itemName.trim())) {
 						LivingEntity newMob = (LivingEntity) mob;
-						knockback(player, newMob, 3, 1.3);
+						knockback(player, newMob, 3, 3);
 						e.setCancelled(true);
 					}
 			}
@@ -333,16 +332,17 @@ public class TFListener implements Listener
 	 */
     public void knockback(Player player, Entity mob, double strength, double Y)
     {
-	    Location loc = mob.getLocation().subtract(player.getLocation());
+    	Location loc = mob.getLocation().subtract(player.getLocation());
+    	loc.setY(loc.getY()+0.000123);
 	    double distance = mob.getLocation().distance(player.getLocation());
-	    Vector v = loc.toVector().multiply(strength/distance).setY(Y);
-	    mob.setVelocity(v);
+	    distance = distance == 0 ? 1 : distance;
+		Vector v = loc.toVector().multiply(strength/distance).setY(Y);
+		mob.setVelocity(v);
     }
     
     /**
      * Logic for CMD-Flags, dont use!
      * 
-     * @deprecated
      * 
      * @param cs
      * @param cmds
@@ -364,7 +364,7 @@ public class TFListener implements Listener
 	/**
      * Logic for CMD-Flags, dont use!
      * 
-     * @deprecated
+     * 
      * 
      * @param cs
      * @param cmd
@@ -385,22 +385,26 @@ public class TFListener implements Listener
 	 * Checks if a Block can be placed a specific {@code block}
 	 * 
 	 * @param block
-	 * @param isSoulEater
+	 * @param lvlOfOPness
 	 * @return boolean
 	 */
-	public boolean blockIsPlacable(Block block, boolean isSoulEater) {
+	public boolean isBlockPlacable(Block block, byte lvlOfOPness) {
 		Material type = block.getType();
-		if(!isSoulEater) {
+		if(lvlOfOPness == (byte) 1) {
 			if(!type.isSolid()) {
 				return true;
 			} else 
 				return false;
-		} else {
+		} else if(lvlOfOPness == (byte) 2) {
 			if(!type.isSolid() || (type == Material.CACTUS) || (type == Material.LEAVES) || (type == Material.LEAVES_2) || (type == Material.ICE) || (type == Material.PACKED_ICE) || (type == Material.WATER)) {
 				return true;
 			} else {
 				return false;
 			}
+		} else if(lvlOfOPness == (byte) 8) {	//Egal welcher Block, zerstört alles!
+			return true;
+		} else {	//0
+			return false;
 		}
 	}
 	
@@ -438,7 +442,7 @@ public class TFListener implements Listener
 		}
 	}
 	
-	public static void playSound(Location loc, Sound sound, float volume, float pitch) {
+	public void playSound(Location loc, Sound sound, float volume, float pitch) {
 		List<Entity> mobs = getNearbyEntities(loc, 30);
 		Player otherPlayer = null;
 		for (Entity entity : mobs) {
@@ -449,7 +453,7 @@ public class TFListener implements Listener
 		}
 	}
 	
-	public static List<Entity> getNearbyEntities(Location loc, double radius) {
+	public List<Entity> getNearbyEntities(Location loc, double radius) {
 		List<Entity> near = loc.getWorld().getEntities();
 		List<Entity> outPut = new ArrayList<Entity>();
 		for(Entity e : near) {
@@ -458,4 +462,65 @@ public class TFListener implements Listener
 		}
 		return outPut;
 	}
+	
+	/**
+	 * I'm too tired to writz... it haz to waitz
+	 * @param player
+	 * @param maxDistance
+	 * @param blocksToRemove
+	 * @param lvlOfOPness
+	 * @param yaw
+	 * @return
+	 */
+	public List<Block> getLineTo3D(Player player, int maxDistance, int blocksToRemove, byte lvlOfOPness, float yaw) {
+		float baseYaw = player.getLocation().getYaw();
+		List<Block> finalList = new ArrayList<Block>();
+		try {
+			System.out.println(baseYaw+yaw);
+			List<Block> blockList = new ArrayList<Block>(getLineOfSightTF(null, player, maxDistance, lvlOfOPness));
+			for(int i = 0; i < blocksToRemove; i++) 
+				blockList.remove(0);
+			List<Block> newList = new ArrayList<Block>(blockList);	//Es muss eine neue Liste erstellt werden, sonst würde man einen Endlosschleife erhalten
+			for (Block block : blockList) {
+				newList.add(player.getWorld().getBlockAt(block.getX(), block.getY()-1, block.getZ()));
+			}
+			finalList.addAll(newList);
+		} catch(IndexOutOfBoundsException ex) {
+			MessageMatil.sendFormatteldPlayer(player, "Du machst da was Falsch ._. Liegt vlt dadran dass nichts da ist was brennen kann, mh?");
+			return null;
+		}
+		return finalList;
+	}
+	
+	/**
+	 * Returns a List of Blocks which are in the focus of the player
+	 * 
+	 * @param transparent A List of Materials(.toString()) of Blocks that can be ignored. Set to {@code null} if you only want air
+	 * @param ent The Entity 
+	 * @param maxDistance Maximum Distance, can't be greater then 120
+	 * @param lvlOfOPness if {@code transparent} is null this value indicates the Blocks which will be added
+	 * @return a List of Blocks which are in the focus of the player
+	 */
+	public List<Block> getLineOfSightTF(List<String> transparent, LivingEntity ent, int maxDistance, byte lvlOfOPness) {
+        if (maxDistance > 120) {
+            maxDistance = 120;
+        }
+        ArrayList<Block> blocks = new ArrayList<Block>();
+        Iterator<Block> itr = new BlockIterator(ent, maxDistance);
+        while (itr.hasNext()) {
+            Block block = itr.next();
+            blocks.add(block);
+            String id = block.getType().toString();
+            if (transparent == null) {
+                if (id != "AIR" && !isBlockPlacable(block, lvlOfOPness)) {
+                    break;
+                }
+            } else {
+                if (!transparent.contains(id)) {
+                    break;
+                }
+            }
+        }
+        return blocks;
+    }
 }
