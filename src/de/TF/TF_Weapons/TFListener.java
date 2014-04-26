@@ -19,14 +19,19 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Animals;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Fireball;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -229,7 +234,12 @@ public class TFListener implements Listener
 						LivingEntity newMob = (LivingEntity) mob;
 						//BaseDmg
 						double dmg = (((Math.random()*newMob.getHealth())/(player.getHealth()/10))+(newMob.getMaxHealth()/10))*(newMob.getFallDistance()+1);
-						if(player.isSprinting() && !player.isOnGround()) {
+						if(player.isSneaking() && !player.isOnGround()) {
+							e.setCancelled(true);
+							knockback(player, newMob, 0, 0.95);
+							knockback(newMob, player, 0, 1);
+							player.setMetadata("soulCancelFallDmg", new FixedMetadataValue(plugin, Boolean.valueOf(true)));
+						} else if(player.isSprinting() && !player.isOnGround()) {
 							newMob.getWorld().playEffect(newMob.getLocation(), Effect.MOBSPAWNER_FLAMES, 0);
 							newMob.getWorld().playEffect(newMob.getLocation(), Effect.MOBSPAWNER_FLAMES, 0);
 							newMob.getWorld().playEffect(newMob.getLocation(), Effect.MOBSPAWNER_FLAMES, 0);
@@ -246,12 +256,27 @@ public class TFListener implements Listener
 							knockback(player, newMob, 0.75, 0);
 						} else if(player.isSneaking()) {
 							e.setCancelled(true);
-							knockback(player, newMob, 0.5, 1);
+							knockback(player, newMob, 0, 1);
+							player.addPotionEffect(new PotionEffect(PotionEffectType.JUMP, 10, 6));
+							player.setMetadata("soulCancelFallDmg", new FixedMetadataValue(plugin, Boolean.valueOf(true)));
 						} else {
 							newMob.damage(dmg);
 							knockback(player, newMob, 0.4, 0.35);
 						}
 					}
+			}
+		}
+	}
+	
+	@EventHandler
+	public void blockFallDmg(EntityDamageEvent e) {
+		if(e.getEntity() instanceof Player) {
+			if(e.getCause() == DamageCause.FALL) {
+				Player player = (Player) e.getEntity();
+				if(e.getEntity().hasMetadata("soulCancelFallDmg")) {
+					e.setCancelled(true);
+					player.removeMetadata("soulCancelFallDmg", plugin);
+				}
 			}
 		}
 	}
@@ -266,22 +291,31 @@ public class TFListener implements Listener
 				if(itemName != null) {
 					if(soulEaterName.equals(itemName.trim())) {
 						if(player.isSneaking()) {
-							List<Block> blockList = getLineTo3D(player, 13, 3, (byte) 2, 90);
+							List<Float> floatingList = new ArrayList<Float>();
+							floatingList.add(15f);
+							floatingList.add(30f);
+							floatingList.add(-15f);
+							floatingList.add(-30f);
+							List<Block> blockList = getLineTo3D(player, 13, 3, (byte) 3, floatingList);
 							if(blockList != null) {
 								if(!blockList.isEmpty()) {
 									playSound(player.getLocation(), Sound.BLAZE_BREATH, 1f, 0.3f);
 									List<Entity> near = player.getLocation().getWorld().getEntities();
 									for (Block block : blockList) {
-										if(isBlockPlacable(block, (byte) 2)) {
-											block.getWorld().playEffect(block.getLocation(), Effect.MOBSPAWNER_FLAMES, 0);
-											for (Entity ent : near) {
-												if((ent instanceof LivingEntity) && (ent.getLocation().distance(block.getLocation()) <= 1))  {
-													ent.setFireTicks(50);
-													playSound(ent.getLocation(), Sound.BLAZE_HIT, 1, 2);
-													knockback(player, ent, 3, player.getLocation().distance(ent.getLocation())/5);
+										if(getWorldGuard().canBuild(player, block) || player.hasPermission("mt.weapon.soul.overrideblockdmg")) {
+											if(isBlockPlacable(block, (byte) 3)) {
+												block.getWorld().playEffect(block.getLocation(), Effect.MOBSPAWNER_FLAMES, 0);
+												for (Entity ent : near) {
+													if((ent instanceof LivingEntity) && (ent.getLocation().distance(block.getLocation()) <= 1) && !(ent.equals(player)))  {
+														ent.setFireTicks(50);
+														playSound(ent.getLocation(), Sound.BLAZE_HIT, 1, 2);
+														knockback(player, ent, 3, player.getLocation().distance(ent.getLocation())/5);
+													}
 												}
+												block.setType(Material.FIRE);
+											} else if (block.getType().equals(Material.SOIL) || block.getType().equals(Material.DIRT) || block.getType().equals(Material.GRASS)){
+												block.setType(Material.SOUL_SAND);
 											}
-											block.setType(Material.FIRE);
 										}
 									}
 									player.setFireTicks(0);
@@ -330,7 +364,7 @@ public class TFListener implements Listener
 	 * @param strength
 	 * @param Y (the height)
 	 */
-    public void knockback(Player player, Entity mob, double strength, double Y)
+    public void knockback(Entity player, Entity mob, double strength, double Y)
     {
     	Location loc = mob.getLocation().subtract(player.getLocation());
     	loc.setY(loc.getY()+0.000123);
@@ -390,31 +424,31 @@ public class TFListener implements Listener
 	 */
 	public boolean isBlockPlacable(Block block, byte lvlOfOPness) {
 		Material type = block.getType();
-		if(lvlOfOPness == (byte) 1) {
-			if(!type.isSolid()) {
+		switch (lvlOfOPness) {
+		case 8:
 				return true;
-			} else 
-				return false;
-		} else if(lvlOfOPness == (byte) 2) {
-			if(!type.isSolid() || (type == Material.CACTUS) || (type == Material.LEAVES) || (type == Material.LEAVES_2) || (type == Material.ICE) || (type == Material.PACKED_ICE) || (type == Material.WATER)) {
+		case 3:
+			if((type == Material.ICE) || (type == Material.PACKED_ICE) || (type == Material.WATER) || (type == Material.THIN_GLASS) || (type == Material.GLASS))
 				return true;
-			} else {
-				return false;
-			}
-		} else if(lvlOfOPness == (byte) 8) {	//Egal welcher Block, zerstört alles!
-			return true;
-		} else {	//0
+		case 2:
+			if((type == Material.CACTUS) || (type == Material.LEAVES) || (type == Material.LEAVES_2))
+				return true;
+		case 1:
+			if(!type.isSolid())
+				return true;
+		case 0:
+		default:
 			return false;
 		}
 	}
 	
 	/**
-	 * Gets the Players facing direction... Will be needed for Soul Eater...
+	 * Gets the Players facing direction...
 	 * 
 	 * @param player
 	 * @return direction
 	 */
-	public static String getFacingDirection(Player player) {
+	public String getFacingDirectionFormatted(Player player) {
 		double rot = (player.getLocation().getYaw() - 90) % 360;
 		if (rot < 0) {
 			rot += 360.0;
@@ -440,6 +474,20 @@ public class TFListener implements Listener
 		} else {
 			return null;
 		}
+	}
+	
+	/**
+	 * Gets the Players facing direction...
+	 * 
+	 * @param player
+	 * @return direction
+	 */
+	public double getFacingDirection(Player player) {
+		double rot = (player.getLocation().getYaw()) % 360;
+		if (rot < 0) {
+			rot += 360.0;
+		}
+		return rot;
 	}
 	
 	public void playSound(Location loc, Sound sound, float volume, float pitch) {
@@ -472,23 +520,40 @@ public class TFListener implements Listener
 	 * @param yaw
 	 * @return
 	 */
-	public List<Block> getLineTo3D(Player player, int maxDistance, int blocksToRemove, byte lvlOfOPness, float yaw) {
-		float baseYaw = player.getLocation().getYaw();
+	public List<Block> getLineTo3D(Player player, int maxDistance, int blocksToRemove, byte lvlOfOPness, List<Float> yaws) {
+		Location baseLoc = player.getLocation();
+		Location mobLoc = player.getLocation();
+		mobLoc.setY(200);
+		LivingEntity ent = (LivingEntity) player.getWorld().spawnEntity(mobLoc, EntityType.WITCH);
+		ent.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 50, 1));
+		ent.teleport(player.getLocation());
+		float baseYaw = baseLoc.getYaw()%360<0 ? (baseLoc.getYaw()%360)+360 : baseLoc.getYaw()%360;
 		List<Block> finalList = new ArrayList<Block>();
-		try {
-			System.out.println(baseYaw+yaw);
-			List<Block> blockList = new ArrayList<Block>(getLineOfSightTF(null, player, maxDistance, lvlOfOPness));
-			for(int i = 0; i < blocksToRemove; i++) 
-				blockList.remove(0);
-			List<Block> newList = new ArrayList<Block>(blockList);	//Es muss eine neue Liste erstellt werden, sonst würde man einen Endlosschleife erhalten
-			for (Block block : blockList) {
-				newList.add(player.getWorld().getBlockAt(block.getX(), block.getY()-1, block.getZ()));
+		yaws.add(baseYaw);
+		for (float yaw : yaws) {
+			try {
+				yaw = baseYaw == yaw ? 0f : yaw;
+				float newYaw = ((baseYaw+yaw) % 360);
+				if (newYaw < 0)
+					newYaw += 360.0;
+				Location newLoc = new Location(ent.getWorld(), baseLoc.getX(), baseLoc.getY(), baseLoc.getZ(), newYaw, baseLoc.getPitch());
+				newLoc.setYaw(newYaw);
+				ent.teleport(newLoc);
+				List<Block> blockList = new ArrayList<Block>(getLineOfSightTF(null, ent, maxDistance, lvlOfOPness));
+				for(int i = 0; i < blocksToRemove; i++) 
+					blockList.remove(0);
+				List<Block> newList = new ArrayList<Block>(blockList);	//Es muss eine neue Liste erstellt werden, sonst würde man einen Endlosschleife erhalten
+				for (Block block : blockList) {
+					newList.add(ent.getWorld().getBlockAt(block.getX(), block.getY()-1, block.getZ()));
+				}
+				finalList.addAll(newList);
+				ent.teleport(baseLoc);
+			} catch(IndexOutOfBoundsException ex) {
+				MessageMatil.sendFormatteldPlayer(player, "Du machst da was Falsch ._. Liegt vlt dadran dass nichts da ist was brennen kann, mh?");
+				return null;
 			}
-			finalList.addAll(newList);
-		} catch(IndexOutOfBoundsException ex) {
-			MessageMatil.sendFormatteldPlayer(player, "Du machst da was Falsch ._. Liegt vlt dadran dass nichts da ist was brennen kann, mh?");
-			return null;
 		}
+		ent.remove();
 		return finalList;
 	}
 	
